@@ -1095,14 +1095,17 @@ magpie.plugin("sessions", (ctx) => {
     const who = el("span", "who");
     who.append(el("span", "name", sa.title || sa.kind || sa.id),
       el("span", "sub", [sa.title ? sa.kind : "", sa.last || sa.start ? ago(sa.last || sa.start) : "", sa.id.slice(0, 8)].filter(Boolean).join(" · ")));
+    if (sa.models?.length) who.append(el("span", "sm-usage-meta", t("Own usage") + " · " + sessUsageWords(sa)));
     r.append(who);
+    const usage = el("div", "sm-sub-usage");
+    sessUsageDetail(usage, sa, () => {});
     const box = el("div", "sess-talk");
     box.dataset.talk = k;
     const show = () => {
       const on = talkOpen.has(k);
       r.setAttribute("aria-expanded", String(on));
       wrap.classList.toggle("open", on);
-      box.hidden = !on;
+      box.hidden = usage.hidden = !on;
       if (on) drawTalk(box, s, sa.id);
     };
     r.onclick = (e) => {
@@ -1111,7 +1114,7 @@ magpie.plugin("sessions", (ctx) => {
       if (talkOpen.has(k)) talkOpen.delete(k); else talkOpen.add(k);
       show();
     };
-    wrap.append(r, box);
+    wrap.append(r, usage, box);
     show();
     return wrap;
   }

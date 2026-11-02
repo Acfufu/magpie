@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/yetone/magpie/internal/catalog"
 )
 
 // Subagent is a conversation a session's agent started inside it, which its
@@ -20,6 +22,7 @@ import (
 // Kimi Code agents/agent-<n>/wire.jsonl. Codex's subagents are sessions of
 // their own, which name theirs in ParentSession instead.
 type Subagent struct {
+	SessionUsage
 	ID    string `json:"id"`
 	Title string `json:"title,omitempty"`
 	// Kind is the agent it ran as: Claude Code's agentType ("Explore"),
@@ -34,7 +37,7 @@ type Subagent struct {
 }
 
 // subagentsOf are the subagents among a session's files, oldest first.
-func subagentsOf(s Session, fs []file) []Subagent {
+func subagentsOf(s Session, fs []file, price func(string) *catalog.Price) []Subagent {
 	var out []Subagent
 	var spawned map[string]kimiSpawn
 	for _, f := range fs {
@@ -61,7 +64,7 @@ func subagentsOf(s Session, fs []file) []Subagent {
 			if sa.Title = m.Description; sa.Title == "" {
 				sa.Title = ccTask(f.path)
 			}
-		case "opencode":
+		case "opencode", "zcode":
 			sa.ID = f.m().sid
 			if f.m().parent != s.ID {
 				sa.Parent = f.m().parent
@@ -70,8 +73,8 @@ func subagentsOf(s Session, fs []file) []Subagent {
 			sa.Title = cmp.Or(sa.Title, st.Title, st.First)
 			// OpenCode 2 names the agent in the session's row, and its
 			// titles no longer do (#2290)
-			if v2, ok := f.m().oc.(ocV2DB); ok {
-				sa.Kind = cmp.Or(v2.agent(f.path, f.m().sid), sa.Kind)
+			if store, ok := f.m().oc.(interface{ agent(string, string) string }); ok {
+				sa.Kind = cmp.Or(store.agent(f.path, f.m().sid), sa.Kind)
 			}
 		case "kimi":
 			sa.ID = filepath.Base(filepath.Dir(f.path))
@@ -95,6 +98,9 @@ func subagentsOf(s Session, fs []file) []Subagent {
 		default:
 			continue
 		}
+		models := map[string]*Model{}
+		addParseModels(models, st)
+		sa.SessionUsage = pricedModels(models, price)
 		out = append(out, sa)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
@@ -215,11 +221,20 @@ func ocSubagentTitle(named string) (string, string) {
 // ("general", "explore"), "" when it names none or the column isn't there.
 // One found is kept: a session's agent is set as it starts.
 func (s ocV2DB) agent(path, sid string) string {
+	return ocStoredAgent(s.db, "session_v2", path, sid)
+}
+
+// ZCode versions without a named agent leave Kind unknown.
+func (s zcDB) agent(path, sid string) string {
+	return ocStoredAgent(s.db, "session", path, sid)
+}
+
+func ocStoredAgent(db *sql.DB, table, path, sid string) string {
 	if v, ok := ocAgents.Load(path); ok {
 		return v.(string)
 	}
 	var a sql.NullString
-	if s.db.QueryRow(`SELECT agent FROM session_v2 WHERE id = ?`, sid).Scan(&a) != nil || a.String == "" {
+	if db.QueryRow(`SELECT agent FROM `+table+` WHERE id = ?`, sid).Scan(&a) != nil || a.String == "" {
 		return ""
 	}
 	k := a.String[:min(len(a.String), 128)]

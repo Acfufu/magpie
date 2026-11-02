@@ -266,7 +266,7 @@ func SearchSession(ctx context.Context, s Session, needle string) (Hit, bool, er
 // and a Cursor chat's a database too, whose newest pages are in its -wal.
 func linesFile(s Session) bool {
 	switch s.Agent {
-	case "opencode":
+	case "opencode", "zcode":
 		return false
 	case "cursor":
 		return strings.HasSuffix(s.Path, ".jsonl")

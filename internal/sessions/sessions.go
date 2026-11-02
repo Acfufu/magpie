@@ -149,7 +149,8 @@ type Session struct {
 	Transcript bool `json:"transcript,omitempty"`
 	// Subagents are the conversations its agent started inside it, each
 	// read with SubagentTranscript (subagents.go)
-	Subagents []Subagent `json:"subagents,omitempty"`
+	Subagents  []Subagent  `json:"subagents,omitempty"`
+	UsageSplit *UsageSplit `json:"usage_split,omitempty"`
 	// WSL is the WSL distro the session ran in, its files read through
 	// \\wsl.localhost (see wsl.go); "" for this computer's own
 	WSL string `json:"wsl,omitempty"`
@@ -1734,7 +1735,8 @@ func assemble(fs []file, price func(string) *catalog.Price, codexTitle func(stri
 	}
 	s.Carry, s.Transcript = carries(s), readable(s)
 	if s.Transcript {
-		s.Subagents = subagentsOf(s, fs)
+		s.Subagents = subagentsOf(s, fs, price)
+		s.UsageSplit = splitUsage(fs, s.Subagents, price)
 	}
 	return s, true
 }
@@ -1808,28 +1810,8 @@ func assembleListed(fs []file, price func(string) *catalog.Price, codexTitle fun
 		custom = cmp.Or(DesktopTitles([]string{s.ID})[s.ID], custom)
 	}
 	s.Title = cmp.Or(custom, named, s.Title, first)
-	// in the models' order: summed in the map's, the cost came out a last
-	// digit apart from read to read, and the session's row read as changed
-	for _, name := range slices.Sorted(maps.Keys(models)) {
-		m := models[name]
-		if p := price(m.Model); p != nil {
-			// a sum of the session's calls of the model, at its base price:
-			// which call went over a long-context tier isn't known here
-			m.Cost, m.Priced = p.At(0).CostSplit(m.Input, m.Output, m.CacheRead, m.CacheWrite, m.CacheWrite1h), true
-			s.Cost += m.Cost
-		} else {
-			s.Unpriced++
-		}
-		s.Tokens.add(m.Tokens)
-		s.Models = append(s.Models, *m)
-	}
-	sort.Slice(s.Models, func(i, j int) bool {
-		a, b := s.Models[i], s.Models[j]
-		if a.Input+a.Output != b.Input+b.Output {
-			return a.Input+a.Output > b.Input+b.Output
-		}
-		return a.Model < b.Model
-	})
+	u := pricedModels(models, price)
+	s.Tokens, s.Models, s.Cost, s.Unpriced = u.Tokens, u.Models, u.Cost, u.Unpriced
 	if s.Last.IsZero() {
 		s.Last = fs[0].mod
 	}

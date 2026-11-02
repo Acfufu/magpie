@@ -50,13 +50,25 @@ const CODEX = [
   sess("codex", "x-5", "the other of the loop", 21, { parent_session: "x-4" }),
   sess("codex", "x-6", "its parent is gone", 30, { role: "subagent", parent_session: "x-gone" }),
 ];
+const priced = (model, input, output, cache_read, cost) => ({ model, input, output, cache_read, cache_write: 0, cost, priced: true });
+const mainUsage = { input: 300, output: 40, cache_read: 1000, cache_write: 200, cost: 0.00172, unpriced: 0, models: [priced("glm-main", 300, 40, 1000, 0.00172)] };
+const childUsage = { input: 77, output: 10, cost: 0.000102, unpriced: 1, models: [priced("glm-child", 70, 8, 0, 0.000102), { model: "unknown-model", input: 7, output: 2, cost: 0, priced: false }] };
+const ZCODE = [sess("zcode", "zc-1", "Port the parser", 5, {
+  input: 377, output: 50, cache_read: 1000, cache_write: 200, cost: 0.001822, unpriced: 1,
+  models: [...mainUsage.models, ...childUsage.models], resume: "", files: 3,
+  usage_split: { main: mainUsage, subagents: childUsage },
+  subagents: [
+    { id: "zc-child", title: "Find the callers", kind: "Explore", start: at(9), last: at(8), input: 50, output: 5, cost: 0.00007, unpriced: 0, models: [priced("glm-child", 50, 5, 0, 0.00007)] },
+    { id: "zc-nested", title: "Check the parser", parent: "zc-child", start: at(8), last: at(7), input: 27, output: 5, cost: 0.000032, unpriced: 1, models: [priced("glm-child", 20, 3, 0, 0.000032), childUsage.models[1]] },
+  ],
+})];
 const PARTS = [
   { role: "user", kind: "text", text: "Research task only" },
   { role: "assistant", kind: "text", text: "Kimi reads ~/.kimi/mcp.json" },
 ];
 
 function serve(lang, calls) {
-  const store = { claude: CLAUDE, codex: CODEX };
+  const store = { claude: CLAUDE, codex: CODEX, zcode: ZCODE };
   return async (route) => {
     const url = new URL(route.request().url());
     const json = (data) => route.fulfill({ json: data });
@@ -67,9 +79,11 @@ function serve(lang, calls) {
     if (url.pathname === "/api/groups") return json({ groups: [] });
     if (url.pathname === "/api/providers") return json({ providers: [], presets: [], excluded: [], gateway: { running: true, window: true } });
     if (url.pathname === "/api/sessions/manage") {
-      const agent = url.searchParams.get("agent") === "codex" ? "codex" : "claude";
+      const requested = url.searchParams.get("agent");
+      const agent = store[requested] ? requested : "claude";
       return json({
         agents: [
+          { agent: "zcode", count: 1, deletable: true, name: "ZCode", icon: "zcode" },
           { agent: "claude", count: CLAUDE.length, deletable: true, name: "Claude Code", icon: "claudecode-color" },
           { agent: "codex", count: CODEX.length, deletable: true, name: "Codex", icon: "codex" },
         ],
@@ -225,6 +239,44 @@ for (const engine of (process.env.BROWSER ? [process.env.BROWSER] : ["chromium",
         await row("x-2").locator("xpath=..").locator(":scope > .sess-detail").waitFor();
         assert.equal(await d.count(), 0);
         assert.equal(await row("x-3").isVisible(), true);
+        assert.deepEqual(errors, []);
+      });
+    }
+  }
+}
+
+for (const engine of (process.env.BROWSER ? [process.env.BROWSER] : ["chromium", "webkit"])) {
+  for (const lang of ["en", "zh", "zh-TW", "ja", "de"]) {
+    for (const width of [1100, 420]) {
+      test(`${engine} ${lang} ${width}: ZCode shows reconciled usage shares, nested own costs and both transcripts`, async (t) => {
+        const { page, view, calls, errors, tr, still, tidy } = await open(engine, lang, width, "zcode", t);
+        const row = view.locator('.row.sm-sess[data-id="zc-1"]');
+        await row.waitFor();
+        const item = row.locator("xpath=..");
+        await still(row, "opening ZCode details", () => row.locator(".who").click());
+        const shares = item.locator(".sm-usage-share");
+        assert.equal(await shares.count(), 2);
+        assert((await shares.nth(0).textContent()).includes(await tr("Main conversation")));
+        assert((await shares.nth(1).textContent()).includes(await tr("Subagent usage")));
+        assert((await shares.nth(1).textContent()).includes(await tr("{n} unpriced models", { n: 1 })));
+        await shares.nth(1).locator("summary").click();
+        const unknown = shares.nth(1).locator(".sess-models .c.none");
+        assert.equal((await unknown.textContent()).trim(), "—", "unknown price is never shown as free");
+        const fold = item.locator(":scope > .sm-subs > .sm-subs-fold");
+        await still(fold, "opening ZCode children", () => fold.click());
+        const child = item.locator('.sm-sub-row[data-sub="zc-child"]');
+        const nested = item.locator('.sm-sub-row[data-sub="zc-nested"]');
+        assert((await child.textContent()).includes(await tr("Own usage")));
+        assert((await nested.textContent()).includes(await tr("{n} unpriced models", { n: 1 })));
+        assert((await child.textContent()).includes("50"), "direct child keeps its own tokens");
+        await still(nested, "opening ZCode child transcript", () => nested.click());
+        await nested.locator("xpath=..").locator(".sess-talk .cx-part").first().waitFor();
+        assert.deepEqual(calls, [{ agent: "zcode", id: "zc-1", sub: "zc-nested" }]);
+        assert.equal(await nested.locator("xpath=..").locator(".sm-sub-usage .model").count(), 2);
+        await item.locator(":scope > .sess-detail .sess-talk-btn").click();
+        await item.locator(":scope > .sess-detail .sess-talk .cx-part").first().waitFor();
+        assert.deepEqual(calls[1], { agent: "zcode", id: "zc-1" });
+        await tidy();
         assert.deepEqual(errors, []);
       });
     }

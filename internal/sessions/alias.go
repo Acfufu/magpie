@@ -41,6 +41,24 @@ func aliasModels(ms []Model, alias func(string) string) []Model {
 // aliasSession counts s's models under their aliases. When rows merged,
 // Unpriced is the merged rows without a price, as it counted them before.
 func aliasSession(s *Session, alias func(string) string) {
+	if len(s.Subagents) > 0 {
+		subs := append([]Subagent(nil), s.Subagents...)
+		for i := range subs {
+			aliasSessionUsage(&subs[i].SessionUsage, alias)
+		}
+		s.Subagents = subs
+	}
+	if s.UsageSplit != nil {
+		split := *s.UsageSplit
+		aliasSessionUsage(&split.Main, alias)
+		aliasSessionUsage(&split.Subagents, alias)
+		if split.Other != nil {
+			other := *split.Other
+			aliasSessionUsage(&other, alias)
+			split.Other = &other
+		}
+		s.UsageSplit = &split
+	}
 	if len(s.Models) == 0 {
 		return
 	}
@@ -55,6 +73,17 @@ func aliasSession(s *Session, alias func(string) string) {
 		}
 	}
 	s.ModelEffort = aliasEffort(s.ModelEffort, alias)
+}
+
+// A fresh model slice keeps a list's cached breakdown unchanged.
+func aliasSessionUsage(u *SessionUsage, alias func(string) string) {
+	u.Models = aliasModels(u.Models, alias)
+	u.Unpriced = 0
+	for _, m := range u.Models {
+		if !m.Priced {
+			u.Unpriced++
+		}
+	}
 }
 
 // aliasStats is st with each day's usage and each session's models counted

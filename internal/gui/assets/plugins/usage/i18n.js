@@ -2,6 +2,13 @@
 // kernel adds them to i18n.js's (magpie.strings).
 magpie.strings({
   zh: {
+    "Main conversation": "主对话",
+    "Subagent usage": "子代理用量",
+    "Other session work": "其他会话消耗",
+    "{n} unpriced models": "{n} 个模型价格未知",
+    "Subagent usage is included in the session total.": "子代理用量已包含在会话总量中。",
+    "{n}% of session tokens (including cache)": "占会话 token（含缓存）的 {n}%",
+
     "Hide from Overview": "从概览中隐藏",
     "Hide this account from Overview": "从概览中隐藏这个账号",
     "Hide its balance from Overview": "从概览中隐藏它的余额",
@@ -240,6 +247,13 @@ magpie.strings({
     "Sent upstream as {to}, as the agent spoke it": "以 {to} 协议发往上游，与 agent 所用协议相同",
   },
   "zh-TW": {
+    "Main conversation": "主對話",
+    "Subagent usage": "子代理用量",
+    "Other session work": "其他會話消耗",
+    "{n} unpriced models": "{n} 個模型價格未知",
+    "Subagent usage is included in the session total.": "子代理用量已包含在會話總量中。",
+    "{n}% of session tokens (including cache)": "佔會話 token（含快取）的 {n}%",
+
     "Hide from Overview": "從概覽中隱藏",
     "Hide this account from Overview": "從概覽中隱藏這個帳號",
     "Hide its balance from Overview": "從概覽中隱藏它的餘額",
@@ -478,6 +492,13 @@ magpie.strings({
     "Sent upstream as {to}, as the agent spoke it": "以 {to} 協議發往上游，與 agent 所用協議相同",
   },
   ja: {
+    "Main conversation": "メインの会話",
+    "Subagent usage": "サブエージェントの使用量",
+    "Other session work": "その他のセッション使用量",
+    "{n} unpriced models": "価格不明のモデル: {n}",
+    "Subagent usage is included in the session total.": "サブエージェントの使用量はセッションの合計に含まれます。",
+    "{n}% of session tokens (including cache)": "セッションのトークン（キャッシュ込み）の {n}%",
+
     "Hide from Overview": "概要から隠す",
     "Hide this account from Overview": "このアカウントを概要から隠す",
     "Hide its balance from Overview": "残高を概要から隠す",
@@ -716,6 +737,13 @@ magpie.strings({
     "Sent upstream as {to}, as the agent spoke it": "エージェントと同じ {to} で上流へ送信",
   },
   de: {
+    "Main conversation": "Hauptgespräch",
+    "Subagent usage": "Subagenten-Nutzung",
+    "Other session work": "Sonstige Sitzungsnutzung",
+    "{n} unpriced models": "{n} Modelle ohne Preis",
+    "Subagent usage is included in the session total.": "Die Subagenten-Nutzung ist in der Sitzungssumme enthalten.",
+    "{n}% of session tokens (including cache)": "{n}% der Sitzungstoken (einschließlich Cache)",
+
     "Hide from Overview": "In der Übersicht ausblenden",
     "Hide this account from Overview": "Dieses Konto in der Übersicht ausblenden",
     "Hide its balance from Overview": "Sein Guthaben in der Übersicht ausblenden",

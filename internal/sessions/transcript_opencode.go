@@ -14,7 +14,12 @@ func openCodeTranscript(s Session, add func(bool, Part) bool) error {
 	// opened and given back under it, and read from without it
 	mu.Lock()
 	release := useDBs()
-	files := openCodeFiles()
+	var files []file
+	if s.Agent == "zcode" {
+		files = zcodeFiles()
+	} else {
+		files = openCodeFiles()
+	}
 	mu.Unlock()
 	defer func() {
 		mu.Lock()
@@ -75,8 +80,15 @@ func openCodeTranscript(s Session, add func(bool, Part) bool) error {
 			return messages[i].ID < messages[j].ID
 		})
 		for _, m := range messages {
+			addPart := add
+			if s.Agent == "zcode" && m.Role == "user" && m.Semantics != nil && m.Semantics.Origin != "" && m.Semantics.Origin != "real_user" {
+				addPart = func(_ bool, p Part) bool {
+					p.Role, p.Kind = "system", "context"
+					return add(true, p)
+				}
+			}
 			for _, p := range f.m().oc.parts(m.ID) {
-				if !openCodeTranscriptPart(m.Role, m.ModelID, p, add) {
+				if !openCodeTranscriptPart(m.Role, m.ModelID, p, addPart) {
 					return nil
 				}
 			}

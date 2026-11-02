@@ -110,6 +110,33 @@ subagent whose session file is in a temp folder). Verification:
 models, token totals, start/last timestamps and effective prices come from the
 same usage records used by Usage and stats endpoints.
 
+Native session usage includes the files folded into its row, including
+OpenCode and ZCode descendants. The total remains one accounting per
+root. ZCode conversations and child conversations use its own read-only
+`session`/`message`/`part` store, not OpenCode's database; non-user
+`semantics.origin` messages are context, not typed prompts. The same
+reader serves conversation search and Markdown export
+([`transcript_opencode.go`](../../internal/sessions/transcript_opencode.go)).
+
+Listed children (`Subagent` in
+[`subagents.go`](../../internal/sessions/subagents.go)) carry their own
+parse's tokens, models, estimated cost and unpriced-model count. A nested
+child excludes its descendants. A session with listed children also has
+`usage_split`: `main`, `subagents` and, when present, `other` auxiliary
+work such as Claude's compaction agents. These partition the same parsed
+files and reconcile to the row's tokens and priced cost; a child never
+gets added to the row again. The displayed subagent token share includes
+input, output and cache; the headline token formula is unchanged. Unknown
+prices stay unknown. Prices use the same effective base rates as the
+session total, not vendor invoices or
+per-call long-context tiers. Model aliases are applied after pricing to
+each share and child without changing cached data. Codex children remain
+separate `Session` objects with their own usage. Statistics still use
+`assembleListed` without constructing child details or reading unchanged
+child files. Verification: `TestZCodeConversationDetails`,
+`TestZCodeUsageBreakdown`, `TestClaudeUsageSplitKeepsAuxiliary`,
+`TestStatsReadNoSubagentFile`, and `sessions-subagents.test.cjs`.
+
 A model the user counts under another id (`usageAliases` in settings.json,
 `magpie model alias`; [`provider.UsageAlias`](../../internal/provider/usagealias.go))
 is merged after pricing, never before: `buildGatewaySessions` prices each

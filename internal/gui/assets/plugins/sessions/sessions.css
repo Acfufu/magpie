@@ -164,3 +164,8 @@ body.window .row.sm-sub-row { min-height: 42px; padding-left: calc(14px + var(--
 .sm-consent-row .lib-switch { flex: none; cursor: pointer; padding: 0; border: 0; }
 .sm-consent-row .lib-switch:disabled { opacity: .5; cursor: default; }
 .sm-consent-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Child usage stays with its transcript. */
+.sm-sub-usage { margin: 0 10px 8px; min-width: 0; }
+.sm-sub-usage[hidden] { display: none; }
+.sm-sub-row .who { min-width: 0; flex: 1; }

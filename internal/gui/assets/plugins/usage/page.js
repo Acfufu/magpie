@@ -2576,10 +2576,46 @@ function sessModelsText(s) {
   return sessModelNames(s.models.slice(0, 2).map((m) => m.model)) + (s.models.length > 2 ? " +" + (s.models.length - 2) : "") + (via ? " " + via : "");
 }
 
+// All four token categories are disjoint; 1-hour writes are already
+// part of cache_write. The headline's existing token formula stays as is.
+function sessUsageTokens(u) {
+  return (u.input || 0) + (u.output || 0) + (u.cache_read || 0) + (u.cache_write || 0);
+}
+
+function sessUsageWords(u) {
+  const words = [t("{a} in · {b} out", { a: fmtN(u.input || 0), b: fmtN(u.output || 0) })];
+  if (u.cache_read) words.push(t("{n} cached", { n: fmtN(u.cache_read) }));
+  if (u.cache_write) words.push(t("{n} written", { n: fmtN(u.cache_write) }));
+  if (u.models?.some((m) => m.priced)) words.push("≈" + fmtCost({ cost: u.cost || 0 }));
+  if (u.unpriced) words.push(t("{n} unpriced models", { n: u.unpriced }));
+  return words.join(" · ");
+}
+
+function sessUsageSplit(s) {
+  const box = el("div", "sm-usage-split");
+  box.append(el("p", "sm-usage-note", t("Subagent usage is included in the session total.")));
+  const shares = [["Main conversation", s.usage_split.main], ["Subagent usage", s.usage_split.subagents], ["Other session work", s.usage_split.other]];
+  for (const [label, u] of shares) {
+    if (!u) continue;
+    const part = el("details", "sm-usage-share");
+    const head = el("summary");
+    head.append(el("span", "sm-usage-label", t(label)), el("span", "sm-usage-meta", sessUsageWords(u)));
+    if (label === "Subagent usage" && sessUsageTokens(s)) {
+      const n = (100 * sessUsageTokens(u) / sessUsageTokens(s)).toLocaleString(undefined, { maximumFractionDigits: 1 });
+      head.append(el("span", "sm-usage-meta", t("{n}% of session tokens (including cache)", { n })));
+    }
+    part.append(head);
+    sessUsageDetail(part, u, () => {});
+    box.append(part);
+  }
+  return box;
+}
+
 // sessUsageDetail adds to a session's details what it spent by model, and
 // what the gateway sent its calls to, at what reasoning; line(label, value)
 // adds a line of the details
 function sessUsageDetail(d, s, line) {
+  if (s.usage_split) d.append(sessUsageSplit(s));
   if (s.models?.length) {
     const m = el("div", "sess-models");
     for (const x of s.models) {

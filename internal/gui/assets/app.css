@@ -4771,3 +4771,11 @@ body .row.agent .ag-prefs .row.pref .who { display: block; }
 .sess-tools .led-rename { flex: none; width: 180px; height: 26px; padding: 0 8px; border-radius: 7px; font-size: 12px; }
 /* Settings › About › Open-source licenses: the notices, as written */
 .notices-text { margin: 0; font: 11px/1.5 var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Usage shares use the same model rows as the whole session. */
+.sm-usage-split { margin: 8px 0; min-width: 0; }
+.sm-usage-note { color: var(--muted); font-size: 11.5px; margin: 0 0 6px; }
+.sm-usage-share { padding: 6px 0; border-top: 1px solid var(--line-2); }
+.sm-usage-share summary { cursor: pointer; font-size: 12px; overflow-wrap: anywhere; }
+.sm-usage-label { font-weight: 500; }
+.sm-usage-meta { display: block; color: var(--muted); font-size: 11px; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
