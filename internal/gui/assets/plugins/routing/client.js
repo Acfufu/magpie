@@ -1077,11 +1077,15 @@ function routingPage(part) {
     if (!c) return x?.pick ? t("Turn {turn} reasons at {level}, as the classifier picked when it began.", { turn: x.turn, level: x.pick }) : null;
     const r = { rule: x };
     const by = c.by || t("the classifier"), kinds = (c.intents || []).map((x) => `“${x}”`).join(", ");
+    // a group above picked the turn's reasoning, so this one's classifier
+    // wasn't asked for it (#4358): the turn reasons at that pick
+    const above = c.above ? t("{by} wasn't asked how hard turn {turn} is: the group above picked {level} reasoning for it.", { by, turn: r.rule.turn, level: c.above }) : "";
+    if (above && !c.intents?.length) return above;
     // it couldn't say, and the turn keeps the intent the turn before had
     // (#1826), rather than going with none
     if (c.error && c.fallback === "previous" && c.intent) return t("{by} was to tell which of {kinds} turn {turn} is, but couldn't — {err} — so the turn keeps “{intent}”, as turn {prev} was.", { by, kinds, turn: r.rule.turn, err: c.error, intent: c.intent, prev: r.rule.turn - 1 });
     if (c.error) return c.intents?.length
-      ? t("{by} was to tell which of {kinds} turn {turn} is, but couldn't — {err} — so no rule with an intent matches it.", { by, kinds, turn: r.rule.turn, err: c.error })
+      ? t("{by} was to tell which of {kinds} turn {turn} is, but couldn't — {err} — so no rule with an intent matches it.", { by, kinds, turn: r.rule.turn, err: c.error }) + (above ? " " + above : "")
       : t("{by} was to rate how hard turn {turn} is, but couldn't — {err} — so it reasons as the agent asked.", { by, turn: r.rule.turn, err: c.error });
     const when = c.cached ? t("said before, for the same message") : t("in {ms}", { ms: took(c.ms) });
     const told = c.after ? " " + t("It was told turn {prev} was “{after}”, which a message that only carries on from it is too.", { prev: r.rule.turn - 1, after: c.after }) : "";
@@ -1098,7 +1102,7 @@ function routingPage(part) {
         ? t("{by} was asked which of {kinds} turn {turn} is, and answered “{said}”, which is no rule's intent ({took}).", { by, kinds, turn: r.rule.turn, said: answered, took: when + sure })
         : t("{by} was asked which of {kinds} turn {turn} is, and said none ({took}).", { by, kinds, turn: r.rule.turn, took: when + sure })
       : t("{by} was asked which of {kinds} turn {turn} is, and said “{intent}” ({took}).", { by, kinds, turn: r.rule.turn, intent: c.intent, took: when + sure })) + told;
-    return effort ? `${said} ${effort}` : said;
+    return effort ? `${said} ${effort}` : above ? `${said} ${above}` : said;
   }
   // intentOf is the intent a rule's condition asks for, as the gateway
   // writes it (intent "…"); undefined for another condition

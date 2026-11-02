@@ -27,6 +27,10 @@
   --green-soft: #e4f6ec;
   --red: #d64545;
   --red-soft: #fbe9e9;
+  /* a failed state's dot is drawn as an x, not a red dot alone: to a
+     red-green colour-blind reader the green and red dots are one colour
+     (coolmantou on Discord). Its shape says it, in greyscale too */
+  --x-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 2l6 6M8 2l-6 6' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
   --amber: #b45309;
   --amber-soft: #fbf0df;
   /* an agent magpie set up that no longer goes through it */
@@ -1109,7 +1113,7 @@ body.window .field.solo { grid-column: auto; }
 .wb-checkin[data-state="bad"] .ci-dot, .wb-checkin[data-why] .ci-dot { margin-top: 4px; }
 .wb-checkin .ci-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
 .wb-checkin .ci-dot.ok { background: var(--green); }
-.wb-checkin .ci-dot.bad { background: var(--red); }
+.wb-checkin .ci-dot.bad { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 .wb-checkin .ci-dot.wait { background: var(--amber); }
 .wb-checkin[data-state="ok"] .ci-say { color: var(--fg-2); }
 .wb-checkin .text { flex: none; font-size: 11px; padding: 2px 7px; }
@@ -1561,7 +1565,7 @@ body.masked :hover > .acct-eye, body.masked .pq-card:hover .acct-eye, body.maske
 .led .st { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
 .led .st .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex: none; }
 .led tr.bad .st { color: var(--red); font-weight: 600; }
-.led tr.bad .st .dot { background: var(--red); }
+.led tr.bad .st .dot { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 /* Source chips use identity/channel colors; latency alone uses traffic lights.
    Existing theme tokens keep these legible in both native color schemes. */
 .led .source-badges .src { flex: none; }
@@ -3484,7 +3488,7 @@ body.window .ag-sk-icon { width: 22px; height: 22px; border-radius: 6px; }
 /* how a model answered Test models: a dot after its name */
 .mchip .tdot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--faint); }
 .mchip .tdot.ok { background: var(--green); }
-.mchip .tdot.bad { background: var(--red); }
+.mchip .tdot.bad { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 .mchip .tdot.wait { animation: tdot 1s ease-in-out infinite alternate; }
 @keyframes tdot { to { opacity: .25; } }
 .mchips .hint, .mfoot .hint { font-size: 11px; color: var(--faint); align-self: center; line-height: 27px; }
@@ -4537,7 +4541,7 @@ body.window .row + .row.agent.conn > .who { min-height: 41px; } /* the line abov
 .ag-st.on .ag-dot { background: var(--green); }
 .ag-st.wait .ag-dot, .ag-warn .ag-dot { background: var(--amber); }
 .ag-st.wait .ag-st-t { color: var(--amber); }
-.ag-st.bad .ag-dot { background: var(--red); }
+.ag-st.bad .ag-dot { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 .ag-st.bad .ag-st-t { color: var(--red); }
 .ag-st .ag-fix { flex: none; }
 .ag-link, .ag-quiet { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: 0; border-radius: 6px; background: none; color: var(--fg-2); font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; transition: background-color .15s, color .15s; }

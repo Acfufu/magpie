@@ -611,7 +611,7 @@ input.lib-setname:focus { border-color: var(--accent); box-shadow: 0 0 0 3px col
 .lib-health.auth { color: var(--amber); }
 .lib-health.auth::before { background: var(--amber); }
 .lib-health.err { color: var(--red); }
-.lib-health.err::before { background: var(--red); }
+.lib-health.err::before { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 /* not checked here, nothing known against it: a ring, not a red dot (#2308) */
 .lib-health.unknown::before { background: transparent; box-shadow: inset 0 0 0 1.2px var(--faint); }
 /* a server that listed its tools: its status opens them, a chevron says so */
@@ -776,3 +776,11 @@ input.lib-setname:focus { border-color: var(--accent); box-shadow: 0 0 0 3px col
 .mk-sheet .mk-browser-folder > svg { grid-row: span 2; color: var(--fg-2); }
 .mk-sheet .mk-browser-folder-name { font-size: 12.5px; font-weight: 500; }
 .mk-sheet .mk-browser-folder-path { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.lib-browserask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; min-width: 0; font-size: 12px; color: var(--fg-2); cursor: default; }
+.lib-browserask[hidden] { display: none; }
+.lib-browserask-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex: none; }
+.lib-browserask-q { min-width: 0; flex: 1 1 220px; overflow-wrap: anywhere; }
+.lib-browserask-picks { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.lib-browserask-pick { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; font-size: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--fg); }
+.lib-browserask-pick:hover { background: var(--accent-soft); }
+.lib-browserask-pick .ic { width: 14px; height: 14px; }

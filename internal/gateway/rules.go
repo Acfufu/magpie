@@ -97,6 +97,10 @@ type Classified struct {
 	Cached bool    `json:"cached,omitempty"` // said before, for the same message
 	Ms     int     `json:"ms,omitempty"`     // how long asking it took
 	Error  string  `json:"error,omitempty"`  // why it couldn't say: no intent matches then, unless Fallback
+	// Above: the reasoning a group above this one picked for the turn, so
+	// this one's classifier wasn't asked for it (#4358): the turn reasons
+	// at that, not as the agent asked
+	Above string `json:"above,omitempty"`
 	// Fallback: "previous" when it couldn't say and the turn keeps the
 	// intent the turn before had (After), rather than none
 	Fallback string `json:"fallback,omitempty"`
@@ -178,9 +182,13 @@ func firstWords(req *Request) string {
 // the conversation has grown past what that model can take and a rule
 // sends it to one with more room. A group whose decision model picks the
 // effort (provider.EffortAuto) has it pick as the turn begins, when the
-// agent asked for reasoning, and the turn keeps it. It returns nil for a
-// group that decides nothing.
-func ruleFor(key string, g provider.Group, ms []provider.Member, req *Request, agent string, ask classifier) *RuleHit {
+// agent asked for reasoning, and the turn keeps it. pick is the reasoning
+// a group above this one already picked for the turn, when there is one:
+// its answer is the one sent (#4358), so this group's classifier is not
+// asked for the effort again — the intents, when its rules have them, are
+// still this group's own routing. It returns nil for a group that decides
+// nothing.
+func ruleFor(key string, g provider.Group, ms []provider.Member, req *Request, agent string, ask classifier, pick string) *RuleHit {
 	if !g.Ruled() || req == nil {
 		return nil
 	}
@@ -293,8 +301,19 @@ func ruleFor(key string, g provider.Group, ms []provider.Member, req *Request, a
 	// never be sent (withEffort leaves "none" as it is), only shown (#2247)
 	intents := provider.Intents(g.Rules, q)
 	effort := g.Effort == provider.EffortAuto && hit.Effort != "" && !req.ThinkOff
+	above := ""
+	if effort && pick != "" {
+		// the group above picked this turn's reasoning (#4358): its answer
+		// is the one sent, so asking here again is paid for and thrown
+		// away (a group in it answered 27 of 28 turns on one reporter's
+		// day, several seconds each, and the turn sent the group above's)
+		effort, above = false, pick
+		if len(intents) == 0 {
+			hit.Classified = &Classified{By: g.Classifier, Above: pick}
+		}
+	}
 	if len(intents) > 0 || effort {
-		c := &Classified{By: g.Classifier, Intents: intents}
+		c := &Classified{By: g.Classifier, Intents: intents, Above: above}
 		if had && slices.Contains(intents, tr.intent) {
 			c.After = tr.intent // a message that only carries on is of its kind
 		}
@@ -486,7 +505,7 @@ func keepsEffort(tr turnRule, pick string, tokens int, now time.Time) bool {
 // their own key (at, the group's, and the group's way down), asking ask
 // of the message as the group's own rules do. It gives what each decided
 // and their keys.
-func (s *Server) nestedRules(at string, req *Request, agent string, ask classifier, ms []provider.Member, cands []candidate, pl planned, aff *Affinity) ([]NestedRule, []string, []candidate, planned) {
+func (s *Server) nestedRules(at string, req *Request, agent string, ask classifier, ms []provider.Member, cands []candidate, pl planned, aff *Affinity, picked string) ([]NestedRule, []string, []candidate, planned) {
 	var out []NestedRule
 	var keys []string
 	for depth := 0; ; depth++ { // as deep as the one going first is
@@ -506,9 +525,15 @@ func (s *Server) nestedRules(at string, req *Request, agent string, ask classifi
 				subMs = append(subMs, m.Below(depth+1))
 			}
 		}
-		h := ruleFor(at, sub, subMs, req, agent, ask)
+		// the outermost pick stands (#4358): a group in the group asked
+		// once one above it has picked only pays for an answer the turn
+		// would throw away
+		h := ruleFor(at, sub, subMs, req, agent, ask, picked)
 		keys = append(keys, at)
 		out = append(out, NestedRule{Group: sub.ID, Name: sub.Name, Rule: h})
+		if h != nil && h.Pick != "" && picked == "" {
+			picked = h.Pick
+		}
 		if h == nil || h.Use == "" {
 			continue
 		}

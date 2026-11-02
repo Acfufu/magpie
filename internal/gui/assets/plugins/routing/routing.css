@@ -178,7 +178,7 @@
 .rt-stats > span.rt-errs:not([aria-disabled="true"]):hover b { color: var(--red); }
 .rt-steps li.aside::before { background: none; border: 1px solid var(--muted); width: 4px; height: 4px; }
 .rt-steps li.ok::before { background: var(--green); }
-.rt-steps li.bad::before { background: var(--red); }
+.rt-steps li.bad::before { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 .rt-steps li.wait::before { animation: rtlive 1.8s infinite; }
 /* where a try's time went: one stacked bar, magpie's, the network's and
    the vendor's told apart by a swatch, each part named with its time */
@@ -312,7 +312,7 @@
 :is(.rt-req, .rt-probe) .to i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 :is(.rt-req, .rt-probe).moved .to i { background: var(--accent); }
 :is(.rt-req, .rt-probe).bad .to { color: var(--red); }
-:is(.rt-req, .rt-probe).bad .to i { background: var(--red); }
+:is(.rt-req, .rt-probe).bad .to i { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 :is(.rt-req, .rt-probe).wait .to i { background: var(--muted); animation: rtlive 1.8s infinite; }
 /* the reasoning keeps to its own box: what it was asked at is cut first,
    then what it was sent at, never drawn over the numbers beside it (#435) */
@@ -883,7 +883,7 @@ button.rt-session { cursor: pointer; }
 .ps-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
 .ps-name small { margin-left: 4px; font-size: 10.5px; font-weight: 400; color: var(--muted); }
 .ps-dst > i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-.ps-dst.bad > i { background: var(--red); }
+.ps-dst.bad > i { background: var(--red); -webkit-mask: var(--x-mark) center / contain no-repeat; mask: var(--x-mark) center / contain no-repeat; border-radius: 0; transform: scale(1.5); }
 .ps-dst.wait > i { background: var(--muted); animation: rtlive 1.8s infinite; }
 .ps-hub { position: relative; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--fg); background: var(--card); box-shadow: inset 0 0 0 1px var(--line), 0 1px 3px rgba(0, 0, 0, .08); }
 .ps-hub svg { width: 24px; height: 24px; }

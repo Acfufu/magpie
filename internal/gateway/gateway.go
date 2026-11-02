@@ -2332,7 +2332,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 		}
 	}
 	if ruleReq != nil && g.Ruled() {
-		hit = ruleFor(ruleAt, g, ms, ruleReq, agent, ask)
+		hit = ruleFor(ruleAt, g, ms, ruleReq, agent, ask, "")
 	}
 	// Some clients send images even when the selected model is known to
 	// accept text only. Reject a new image and omit images from history.
@@ -2636,7 +2636,11 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 	var nested []NestedRule
 	var nestedAt []string
 	if ruleReq != nil && !modelRuled(hit, ms, cands) {
-		nested, nestedAt, cands, pl = s.nestedRules(ruleAt, ruleReq, agent, ask, ruled, cands, pl, aff)
+		picked := ""
+		if hit != nil {
+			picked = hit.Pick
+		}
+		nested, nestedAt, cands, pl = s.nestedRules(ruleAt, ruleReq, agent, ask, ruled, cands, pl, aff, picked)
 	}
 	// the effort a group's decision model picked for the turn: the
 	// outermost group's that did
@@ -2703,7 +2707,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 		var status int
 		var msg string
 		if cands, pl, status, msg = pinTo(pin, cands, pl); status != 0 {
-			call.Status, call.Error = status, "account pinned: "+pin
+			call.Status, call.Error = status, "account pinned: "+pinnedName(pin)
 			writeError(w, from, status, msg)
 			finishCapture()
 			s.record(call)
@@ -2747,7 +2751,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, from provider.Pro
 		capture.tools = tools
 	}
 	tierAsked := bodyTier(from, body) // the service tier the client asked for (#1784)
-	tr := s.trace.beginFor(r, Route{turn: turn, dirOf: dirOf(from, plain), tools: tools, imageTurn: drawingTurnID(metadata.Turn), imageCaller: codexTurnKey(r, call.Agent), TitleLink: link, Pinned: pin, Time: start, Agent: call.Agent, Session: sessionOf(r.Header), Conv: convOf(r.Header, body), ParentSession: titleParentSession(r.Header, metadata, call.Kind), Kind: call.Kind, For: call.For, Model: call.Model, Effort: requestEffort(from, body), Tier: tierAsked, Provider: p.ID, Group: group, Rule: hit, Nested: nested, SealedTask: sealedTask, LeadAccount: leadAccount, Compaction: compactionWho(checkpoint), Subagent: subagent, Moved: moved, SubagentEffort: subagentEffort, Sub: subOf(r.Header), SubagentID: subagentID, Affinity: shown, Order: pl.order, Left: append(slices.Clip(pl.left), smallW...)})
+	tr := s.trace.beginFor(r, Route{turn: turn, dirOf: dirOf(from, plain), tools: tools, imageTurn: drawingTurnID(metadata.Turn), imageCaller: codexTurnKey(r, call.Agent), TitleLink: link, Pinned: pinnedName(pin), Time: start, Agent: call.Agent, Session: sessionOf(r.Header), Conv: convOf(r.Header, body), ParentSession: titleParentSession(r.Header, metadata, call.Kind), Kind: call.Kind, For: call.For, Model: call.Model, Effort: requestEffort(from, body), Tier: tierAsked, Provider: p.ID, Group: group, Rule: hit, Nested: nested, SealedTask: sealedTask, LeadAccount: leadAccount, Compaction: compactionWho(checkpoint), Subagent: subagent, Moved: moved, SubagentEffort: subagentEffort, Sub: subOf(r.Header), SubagentID: subagentID, Affinity: shown, Order: pl.order, Left: append(slices.Clip(pl.left), smallW...)})
 	if watched != nil {
 		watched.routeID = tr.ID
 	}
@@ -8207,8 +8211,8 @@ func dshCompacts(h http.Header) bool {
 const SessionHeader = "X-Magpie-Session"
 
 // AccountHeader pins a request to one of a subscription's accounts, by its
-// user (an email, a login) or its id in the routing trace: only it is
-// tried, and when it can't take the request the caller is told why rather
+// user (an email, a login) or its id in the routing trace, percent-encoded
+// when it isn't ASCII (pinnedName): only it is tried, and when it can't take the request the caller is told why rather
 // than another account answering — a probe of one account needs that one.
 // It goes no further than magpie.
 const AccountHeader = "X-Magpie-Account"
